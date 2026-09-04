@@ -3,7 +3,8 @@ SIH Problem Statement (PS ID: SIH26047) Submission Monitor & Telegram Alert Bot.
 ================================================================================
 Monitors the Smart India Hackathon (SIH) portal for submission count updates
 and sends real-time Telegram notifications when submissions increase.
-Uses Playwright (real browser) instead of raw requests to bypass WAF/403 blocks.
+Uses Playwright (real browser, stealth mode) instead of raw requests to bypass
+WAF/403 blocks and headless-browser detection.
 """
 
 import os
@@ -94,7 +95,7 @@ def save_state(last_count: int):
 
 
 # ==============================================================================
-# DATA EXTRACTION & SCRAPING MODULE (Playwright-based)
+# DATA EXTRACTION & SCRAPING MODULE (Playwright-based, stealth mode)
 # ==============================================================================
 
 class SIHScraper:
@@ -141,22 +142,42 @@ class SIHScraper:
         return None
 
     def fetch_page(self, urls=TARGET_URLS) -> Optional[str]:
-        """Fetches raw HTML using a real headless browser to bypass WAF fingerprint blocks."""
+        """Fetches raw HTML using a real headless browser with stealth tweaks
+        to bypass WAF fingerprint blocks and headless-detection."""
         for url in urls:
             try:
                 with sync_playwright() as p:
-                    browser = p.chromium.launch(headless=True)
-                    context = browser.new_context(user_agent=BROWSER_USER_AGENT)
+                    browser = p.chromium.launch(
+                        headless=True,
+                        args=[
+                            "--disable-blink-features=AutomationControlled",
+                            "--no-sandbox",
+                            "--disable-dev-shm-usage",
+                        ],
+                    )
+                    context = browser.new_context(
+                        user_agent=BROWSER_USER_AGENT,
+                        viewport={"width": 1366, "height": 768},
+                        locale="en-IN",
+                        timezone_id="Asia/Kolkata",
+                    )
+                    # Remove the webdriver flag that reveals automation to JS-based detectors
+                    context.add_init_script(
+                        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+                    )
                     page = context.new_page()
-                    page.goto(url, timeout=25000, wait_until="domcontentloaded")
-                    # small wait for any client-side rendering of the table
-                    page.wait_for_timeout(2000)
+                    page.goto(url, timeout=30000, wait_until="networkidle")
+                    page.wait_for_timeout(3000)
                     html = page.content()
                     browser.close()
+
+                    logger.info(f"[Scraper] Fetched {len(html) if html else 0} chars from {url}")
+
                     if html and len(html) > 1000:
                         return html
                     else:
-                        logger.warning(f"[Scraper] Empty/short content from {url}")
+                        preview = html[:300].replace("\n", " ") if html else "EMPTY"
+                        logger.warning(f"[Scraper] Empty/short content from {url}. Preview: {preview}")
             except Exception as e:
                 logger.warning(f"[Scraper] Playwright error for {url}: {e}")
         return None
