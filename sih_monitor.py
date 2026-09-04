@@ -37,22 +37,22 @@ load_dotenv()
 
 # Telegram Bot Credentials
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8887654158:AAEgwGkf08b-YLbQek1-o002BO-ZzOPtnAQ").strip()
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "6478945265").strip()
 
-# Target Problem Statement Details
-TARGET_PS_ID = os.getenv("PS_CODE", "SIH26047").strip()
-TARGET_PS_TITLE = os.getenv("PS_TITLE", "Patient Case-Taking Software").strip()
-MAX_CAPACITY = int(os.getenv("MAX_CAPACITY", "500"))
+# Target Problem Statement Details (Hardcoded)
+TARGET_PS_ID = "SIH26047"
+TARGET_PS_TITLE = "Patient Case-Taking Software"
+MAX_CAPACITY = 500
 
 # Target URLs (Handles 2026/2024 portals and fallbacks)
 TARGET_URLS = [
-    os.getenv("SIH_PS_URL", "https://www.sih.gov.in/sih2026PS").strip(),
+    "https://www.sih.gov.in/sih2026PS",
     "https://sih.gov.in/sih2024PS",
     "https://sih.gov.in",
 ]
 
 # Polling Interval (in seconds - 300s = 5 minutes)
-CHECK_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", "300"))
+CHECK_INTERVAL_SECONDS = 300
 
 # Browser-mimicking HTTP headers
 HTTP_HEADERS = {
